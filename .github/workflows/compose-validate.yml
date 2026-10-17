@@ -1,0 +1,18 @@
+name: Compose validate
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose and production Caddyfile
+        run: |
+          cp .env.example .env.ci
+          sed -i 's/CHANGE_ME/ci-fixture-secret/g' .env.ci
+          sed -i 's/admin@example.com/ci@example.com/g' .env.ci
+          ./scripts/validate.sh .env.ci
