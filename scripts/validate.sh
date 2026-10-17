@@ -12,6 +12,11 @@ if [[ ! -f "$ENV_FILE" ]]; then
 	exit 1
 fi
 
+# compose.yml ghost service uses env_file: .env
+if [[ ! -f .env ]]; then
+	cp "$ENV_FILE" .env
+fi
+
 echo "== required env keys =="
 load_env "$ENV_FILE"
 require_env_keys
