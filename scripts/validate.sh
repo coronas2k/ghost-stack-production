@@ -12,11 +12,11 @@ if [[ ! -f "$ENV_FILE" ]]; then
 	exit 1
 fi
 
-compose_config_prod
-
 echo "== required env keys =="
 load_env "$ENV_FILE"
 require_env_keys
+
+compose_config_prod
 
 assert_production_caddyfile
 compose_config_local_if_present

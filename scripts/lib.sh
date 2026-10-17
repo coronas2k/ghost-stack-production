@@ -18,8 +18,10 @@ require_dotenv() {
 
 load_env() {
 	local env_file="${1:-.env}"
+	set -a
 	# shellcheck disable=SC1090
 	source "$env_file"
+	set +a
 }
 
 ensure_local_override_files() {
