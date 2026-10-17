@@ -4,6 +4,56 @@
 
 Operations use `./scripts/stack.sh` (see `./scripts/stack.sh help`).
 
+## Why use this
+
+This repo is a **small, opinionated Compose stack** for running your own Ghost site on a VPS or dedicated host—not a managed platform and not a theme or content repo. It gives you a path from `cp .env.example .env` to HTTPS without hand-rolling nginx configs, certbot timers, or unpinned `latest` images.
+
+**Good fit if you want:**
+
+- Self-hosted publishing with full control over data (MySQL + Ghost content on your volumes).
+- **Automatic TLS** and renewals via Caddy and Let's Encrypt, with secrets kept in `.env` instead of the image or git.
+- A **single edge** (Caddy) and **no MySQL port on the host**—only HTTP/HTTPS are published.
+- **Repeatable checks** before deploy (`validate`, `smoke`) and CI that catches broken compose or production Caddy misconfig early.
+
+**Not a substitute for:** backups, monitoring, WAF, or Ghost Admin membership policy—you still configure SMTP, DNS, firewall, and Ghost settings for your threat model.
+
+## Benefits
+
+| Area | What you get |
+| --- | --- |
+| **TLS** | Let's Encrypt issuance and renewal; HTTP→HTTPS redirect; cert state in `caddy_data` volume |
+| **Proxy** | All traffic through Caddy to Ghost; correct `Host` / `X-Forwarded-*` for Ghost's public `url` |
+| **Data** | MySQL 8 (utf8mb4); persistent `data/mysql` and `data/ghost` bind mounts |
+| **Supply chain** | Digest-pinned Caddy and MySQL images; explicit Ghost version tag |
+| **Operations** | `stack.sh` for up/down/local HTTPS/logs; healthchecks so Caddy starts after Ghost is ready |
+| **Local dev** | Optional `local-up` with internal TLS (OrbStack-friendly) without changing production `Caddyfile` |
+
+## Security and hardening
+
+Production `caddy/Caddyfile` is written for a **public internet** edge:
+
+- **Caddy admin API disabled** (`admin off`) so the container does not expose a config control plane.
+- **Response headers:** HSTS (production site block), `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`; `Server` stripped at the proxy.
+- **Compression** at the edge (`zstd` + `gzip`); Ghost runs with `compress: n` so work is not duplicated.
+- **TLS automation** via ACME (`ACME_EMAIL`, `ACME_CA`); production file must not use `tls internal` (enforced by `validate.sh`).
+- **Network exposure:** MySQL is `expose` only on the Compose network; Ghost is not published to the host—only Caddy binds **80/443**.
+- **Secrets:** `.env` is gitignored; compose fails fast if `DOMAIN`, database passwords, or `ACME_EMAIL` are missing.
+- **Logging:** json-file driver with size/file rotation on all services.
+
+Ghost still sets some application headers (for example `X-Powered-By`); tighten membership signup and staff security in **Ghost Admin** after setup.
+
+## Production readiness
+
+What “production ready” means **here**:
+
+1. **Pinned, health-checked services** — `db`, `ghost`, and `caddy` must pass healthchecks; Caddy waits for a healthy Ghost before serving.
+2. **Production vs local split** — Production uses public automatic HTTPS; local override swaps in `Caddyfile.local` + `compose.local.yml` without baking dev TLS into the production proxy config.
+3. **Config guardrails** — `scripts/validate.sh` checks required env keys, renders compose, rejects internal TLS in production Caddyfile, and validates local overrides when present.
+4. **Smoke path** — `scripts/smoke.sh` hits `/`, `/ghost/`, and theme CSS over HTTPS (after you trust your CA locally or use a real cert).
+5. **CI** — GitHub Actions runs the same validate path on every push/PR so compose and Caddy rules do not regress silently.
+
+**You are still responsible for:** DNS pointing at the host, firewall rules, strong `.env` passwords, production SMTP, backups of `data/`, OS and image updates, and completing Ghost setup (owner account, URL, membership access). Run `./scripts/stack.sh validate` before every production deploy.
+
 ## Quick start
 
 1. Copy configuration and set secrets:
