@@ -1,0 +1,5 @@
+.env
+.cursor/
+data/
+compose.local.yml
+caddy/Caddyfile.local

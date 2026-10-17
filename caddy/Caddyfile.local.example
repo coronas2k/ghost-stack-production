@@ -1,0 +1,32 @@
+# Local HTTPS (internal CA). Copy to Caddyfile.local and use with compose.local.yml.
+{
+	admin off
+}
+
+{$DOMAIN} {
+	tls internal
+
+	log {
+		output stdout
+		format console
+	}
+
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options SAMEORIGIN
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+
+	reverse_proxy ghost:2368 {
+		header_up Host {host}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		transport http {
+			versions 1.1
+		}
+	}
+}
