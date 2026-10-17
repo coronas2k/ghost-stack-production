@@ -1,0 +1,9 @@
+# Local development: copy to compose.local.yml (gitignored).
+# Set DOMAIN in .env (e.g. caddy.<project-folder>.orb.local on OrbStack).
+# Run: ./scripts/stack.sh local-up
+services:
+  caddy:
+    volumes:
+      - ./caddy/Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
